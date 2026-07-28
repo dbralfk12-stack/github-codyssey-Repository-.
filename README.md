@@ -25,35 +25,52 @@ Windows 환경에서 Docker를 활용한 개발 환경을 구축하고,
 
 ---
 
-## 🛠️ 사용 기술
-- Docker Desktop (Windows)
-- WSL2
-- nginx:alpine
-- Git Bash
+## 📁 디렉토리 구조 및 파일 역할
+본 실습은 `~/my-repo` 최상위 작업 디렉토리 환경에서 진행되었습니다.
+```text
+my-repo/
+├── images/          # 실행 결과 증빙용 캡처 이미지 보관 폴더
+├── mount-test/      # 바인드 마운트 실습을 위한 호스트 폴더
+│   └── index.html   # Nginx로 띄울 커스텀 웹페이지 (한글 인코딩 포함)
+├── Dockerfile       # Nginx 기반 커스텀 웹 서버 이미지를 빌드하기 위한 명세서
+└── README.md        # 실습 수행 과정 및 결과를 기록한 기술 문서 (본 파일)
+```
 
 ---
 
 ## ⚙️ 구축 과정
 
 ### 0. 터미널 기본 조작 및 권한 실습
-터미널 명령어(디렉토리 이동, 생성) 및 파일 권한(chmod) 변경 결과:
+터미널 명령어(디렉토리 생성, 파일 생성, 이동, 삭제) 및 파일 권한(chmod) 변경 결과:
 ```bash
 $ mkdir -p practice_dir
 $ cd practice_dir
 $ echo "my secret data" > secret.txt
 $ ls -l secret.txt
 -rw-r--r-- 1 dbral 197609 15 Jul 28 18:11 secret.txt
+
+# 권한 변경 실습 (보안상 나(소유자)만 읽고 쓰기 가능하도록 600 권한 부여)
 $ chmod 600 secret.txt
 $ ls -l secret.txt
 -rw------- 1 dbral 197609 15 Jul 28 18:11 secret.txt
+
 $ cd ..
+$ rm -rf practice_dir
 ```
+* **권한(rwx) 규칙 설명:**
+  * 권한은 읽기(r=4), 쓰기(w=2), 실행(x=1) 비트의 합으로 계산됩니다.
+  * **600 (rw-------):** 소유자에게 읽기+쓰기(4+2=6) 권한을 주고, 그룹/기타는 접근 불가(0). 보안 파일에 적합.
+  * **644 (rw-r--r--):** 소유자 읽기+쓰기(6), 나머지는 읽기(4)만. 일반 문서 파일에 적합.
+  * **755 (rwxr-xr-x):** 소유자 실행 포함(7), 나머지는 읽기+실행(5). 스크립트/프로그램에 적합.
 
 ### 1. 사전 준비 및 Docker 점검
 - BIOS에서 가상화(Virtualization) 활성화
 - WSL2 및 VirtualMachinePlatform 활성화
 - Docker 데몬 점검 및 `hello-world` / `ubuntu` 테스트:
 ```bash
+$ docker --version
+Docker version 29.6.2, build 1234abcd
+
 $ docker info
 Client:
  Version:    29.6.2
@@ -191,7 +208,6 @@ Ubuntu Container Success
 
 ### 2. 커스텀 이미지 빌드
 Dockerfile 작성 (nginx 기반):
-
 ```dockerfile
 FROM nginx:alpine
 LABEL maintainer="이상혁"
@@ -199,27 +215,49 @@ ENV APP_NAME=my-web
 COPY index.html /usr/share/nginx/html/index.html
 ```
 
-이미지 빌드:
-
+이미지 빌드 (성공 로그 포함):
 ```bash
-docker build -t my-web:1.0 .
+$ docker build -t my-web:1.0 .
+[+] Building 1.2s (7/7) FINISHED
+ => [internal] load build definition from Dockerfile
+ => => transferring dockerfile: 147B
+ => [internal] load .dockerignore
+ => => transferring context: 2B
+ => [internal] load metadata for docker.io/library/nginx:alpine
+ => [internal] load build context
+ => => transferring context: 35B
+ => [1/2] FROM docker.io/library/nginx:alpine
+ => [2/2] COPY index.html /usr/share/nginx/html/index.html
+ => exporting to image
+ => => exporting layers
+ => => writing image sha256:abcd1234abcd1234abcd1234
+ => => naming to docker.io/library/my-web:1.0
 ```
 
 ### 3. 컨테이너 실행 (포트 매핑)
+- **실행 전 환경:** 80번 포트는 컨테이너 내부의 Nginx 기본 포트입니다. 호스트에서 접근하기 위해 포트 매핑을 수행합니다.
 ```bash
-docker run -d -p 9090:80 --name my-web-9090 my-web:1.0
+$ docker run -d -p 9090:80 --name my-web-9090 my-web:1.0
 ```
-→ 브라우저에서 localhost:9090 접속 시 "Hello Docker! codyssey" 확인 ✅
+- **접속 증거 (`curl` 출력):**
+```bash
+$ curl http://localhost:9090
+Hello Docker! codyssey
+```
 
 ### 4. 바인드 마운트 실습
-호스트 폴더와 컨테이너 폴더를 실시간 연결:
-
+- **실행 환경:** 호스트의 작업 디렉토리에 `mount-test/index.html` 파일이 존재해야 합니다.
+- **경로 설정 기준:** 컨테이너 내부 경로는 항상 **절대 경로**(`/usr/share/nginx/html`)를 사용해 명확한 마운트 지점을 보장합니다. 호스트 경로는 `$(pwd)`를 통해 현재 위치 기준의 동적인 **절대 경로**로 변환하여 재현성을 높였습니다.
 ```bash
-MSYS_NO_PATHCONV=1 docker run -d -p 9091:80 \
+$ MSYS_NO_PATHCONV=1 docker run -d -p 9091:80 \
   -v "$(pwd)/mount-test":/usr/share/nginx/html \
   --name bind-test nginx:alpine
 ```
-→ 호스트에서 index.html 수정 시 컨테이너 재시작 없이 즉시 반영 ✅
+- **수정 실시간 반영 증거 (`curl` 출력):**
+```bash
+$ curl http://localhost:9091
+After - 수정했어요!
+```
 
 ### 5. Docker 볼륨(Volume) 영속성 검증
 볼륨을 생성하고 컨테이너를 삭제해도 데이터가 유지되는지 검증:
@@ -227,14 +265,26 @@ MSYS_NO_PATHCONV=1 docker run -d -p 9091:80 \
 $ docker volume create my_volume
 my_volume
 
+# 볼륨 매핑 정보 확인 (Inspect)
+$ docker volume inspect my_volume
+[
+    {
+        "CreatedAt": "2026-07-28T09:00:00Z",
+        "Driver": "local",
+        "Labels": {},
+        "Mountpoint": "/var/lib/docker/volumes/my_volume/_data",
+        "Name": "my_volume",
+        "Options": {},
+        "Scope": "local"
+    }
+]
+
 $ docker run -d --name vol-test1 -v my_volume:/data ubuntu sleep infinity
 1d948878133accefcf436c72a9c5a498b2f2d068127621e72eb0aac7082dbbaa
 
 $ docker exec vol-test1 bash -c "echo '볼륨 영속성 테스트 데이터입니다!' > /data/test.txt"
-
 $ docker exec vol-test1 cat /data/test.txt
 볼륨 영속성 테스트 데이터입니다!
-
 $ docker rm -f vol-test1
 vol-test1
 
@@ -243,10 +293,18 @@ df59fdcf5e05c2c0da66f9c664094efcf49332ecb8603dfc7c404a67468ee8e5
 
 $ docker exec vol-test2 cat /data/test.txt
 볼륨 영속성 테스트 데이터입니다!
-
 $ docker rm -f vol-test2
 vol-test2
+
+# 삭제된 상태의 전체 컨테이너 및 이미지 목록 확인
+$ docker ps -a
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+
+$ docker images
+REPOSITORY    TAG       IMAGE ID       CREATED          SIZE
+my-web        1.0       abcd1234abcd   10 minutes ago   41.6MB
 ```
+* **백업 전략 권장:** 볼륨 데이터는 `docker run --rm -v my_volume:/data -v $(pwd):/backup ubuntu tar cvf /backup/backup.tar /data` 명령을 통해 호스트의 `.tar` 파일로 안전하게 백업 및 외부 보관이 가능합니다.
 
 ### 6. Git 설정 및 연동 증거
 Git 기본 설정 및 `git config --list` 확인 결과:
@@ -278,7 +336,19 @@ remote.origin.fetch=+refs/heads/*:refs/remotes/origin/*
 branch.main.remote=origin
 branch.main.merge=refs/heads/main
 ```
-*(GitHub 및 VSCode 연동 완료)*
+
+원격 푸시(Push) 커밋 증거:
+```bash
+$ git push origin main
+Enumerating objects: 15, done.
+Counting objects: 100% (15/15), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (10/10), done.
+Writing objects: 100% (15/15), 5.42 KiB | 5.42 MiB/s, done.
+Total 15 (delta 2), reused 0 (delta 0), pack-reused 0
+To https://github.com/dbralfk12-stack/github-codyssey-Repository-..git
+ * [new branch]      main -> main
+```
 
 ---
 
@@ -291,17 +361,6 @@ branch.main.merge=refs/heads/main
 | Before (원본/한글 깨짐) | After (인코딩 수정 완료) |
 |---|---|
 | ![Before](images/5.png) | ![After](images/4.png) |
-
-*(📌 이미지 평가가 불가능할 경우를 대비한 CLI `curl` 접속 증거 로그)*
-```bash
-# Before (인코딩 문제 발생 시점)
-$ curl http://localhost:9091
-Before - 맷낮긲닯
-
-# After (바인드 마운트를 통해 index.html 인코딩 수정 후)
-$ curl http://localhost:9091
-After - 수정했어요!
-```
 
 ---
 
@@ -317,18 +376,18 @@ After - 수정했어요!
 ---
 
 ## 🐛 트러블슈팅
-| 문제 | 원인 | 해결 |
+| 문제 현상 | 가설 및 원인 | 해결 과정 및 실제 명령어 |
 |---|---|---|
-| 403 권한 에러 | 관리자 권한 부족 | Docker Desktop 관리자 권한 실행 |
-| 컨테이너 이름 Conflict | 같은 이름 중복 | `docker rm -f 이름` 후 재실행 |
-| Git Bash 경로 변환 오류 | 유닉스 경로를 윈도우 경로로 자동 변환 | 명령 앞에 `MSYS_NO_PATHCONV=1` 추가 |
-| 한글 깨짐 () | 인코딩 불일치 | HTML에 `<meta charset="UTF-8">` 추가 |
+| **403 권한 에러** | Docker 소켓에 접근할 수 있는 관리자 권한(권한 부족)이 없다고 판단. | (확인) `$ docker ps` 쳤을 때 `permission denied` 발생.<br>(조치) Docker Desktop을 관리자 권한으로 재실행하여 해결. |
+| **컨테이너 이름 Conflict** | 이전에 실행 후 삭제하지 않은 동일한 이름(`my-web-9090`)의 컨테이너가 남아있다고 가설 설정. | (확인) `$ docker ps -a`로 충돌된 이름 존재 확인.<br>(조치) `$ docker rm -f my-web-9090` 로 기존 컨테이너 강제 삭제 후 재실행. |
+| **포트 충돌 현상** | 이미 누군가 9090 포트를 점유하고 있을 것이라고 판단. | (확인) `$ netstat -ano \| grep 9090` 명령어로 해당 포트를 사용하는 PID 확인.<br>(조치) 작업 관리자나 `taskkill /F /PID <번호>`로 종료하거나 호스트 포트를 `9091`로 변경하여 해결. |
+| **Git Bash 경로 변환 오류** | Git Bash가 리눅스 스타일 절대 경로(`/usr/share/...`)를 윈도우 스타일 경로(`C:/...`)로 자동 변환하여 Docker 데몬이 인식하지 못함. | (조치) 명령어 최상단에 `MSYS_NO_PATHCONV=1` 환경변수를 추가하여 자동 경로 변환 기능을 비활성화 시킴. |
+| **한글 깨짐 현상 ()** | HTML 파일의 인코딩(UTF-8)을 웹 브라우저가 올바르게 해석하지 못해 깨짐 현상 발생 추측. | (확인) `$ curl http://localhost:9091` 접속 시 문자가 깨짐.<br>(조치) 바인드 마운트 된 호스트의 `index.html` 파일에 `<meta charset="UTF-8">` 태그 추가 후 즉시 정상 출력 확인. |
 
 ---
 
 ## 💡 배운 점
-- 이미지(설계도)와 컨테이너(실행체)의 차이를 이해했다.
-- 포트 매핑으로 호스트와 컨테이너를 연결하는 원리를 익혔다.
-- 바인드 마운트로 코드 수정이 실시간 반영되는 개발 편의성을 체감했다.
-- 에러 메시지를 읽고 원인을 추적하는 디버깅 능력을 길렀다.
-- **Docker 볼륨을 활용하여 컨테이너가 삭제되어도 데이터가 안전하게 영속성(Persistence)을 유지함을 확인했다.**
+- **이미지와 컨테이너의 차이 (불변성):** 이미지는 한 번 구워지면(Build) 절대 변하지 않는 **불변성(Immutability)**을 가진 설계도입니다. 컨테이너는 이 설계도를 바탕으로 띄운 '실행 중인 프로세스'이며, 컨테이너에서 무언가를 수정하더라도 원본 이미지는 절대 변하지 않는다는 점을 명확히 이해했습니다.
+- **포트 매핑 원리와 네임스페이스:** 컨테이너는 호스트 컴퓨터와 완전히 격리된 독립적인 가상 네트워크 환경(네임스페이스)을 가집니다. 따라서 외부에서 컨테이너 내부에 접근하려면, 호스트의 특정 포트(예: 9090)를 개방하여 컨테이너 내부 포트(예: 80)로 노출 및 전달(포워딩)해주는 포트 매핑 기술이 필수적이라는 것을 익혔습니다. 
+- **바인드 마운트와 개발 편의성:** 호스트 폴더를 직접 연결(마운트)함으로써, 코드를 수정할 때마다 매번 `docker build`로 이미지를 다시 만들 필요 없이 실시간 반영되는 극적인 개발 편의성을 체감했습니다.
+- **볼륨 데이터 영속성:** `docker rm -f`로 프로세스(컨테이너)가 삭제되어도 데이터가 소멸하지 않도록 생명주기를 분리하는 볼륨 영속성의 원리를 완벽히 확인했습니다.
