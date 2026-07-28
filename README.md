@@ -13,14 +13,14 @@ Windows 환경에서 Docker를 활용한 개발 환경을 구축하고,
 ---
 
 ## ✅ 수행 체크리스트
-- [ ] 터미널 기본 조작 및 폴더 구성
-- [ ] 권한 변경 실습
+- [x] 터미널 기본 조작 및 폴더 구성
+- [x] 권한 변경 실습
 - [x] Docker 설치/점검
-- [ ] hello-world 실행
+- [x] hello-world 실행
 - [x] Dockerfile 빌드/실행
 - [x] 포트 매핑 접속(2회)
 - [x] 바인드 마운트 반영
-- [ ] 볼륨 영속성
+- [x] 볼륨 영속성
 - [x] Git 설정 + VSCode GitHub 연동
 
 ---
@@ -38,8 +38,15 @@ Windows 환경에서 Docker를 활용한 개발 환경을 구축하고,
 ### 0. 터미널 기본 조작 및 권한 실습
 터미널 명령어(디렉토리 이동, 생성) 및 파일 권한(chmod) 변경 결과:
 ```bash
-# 터미널 명령어 (pwd, mkdir, cd, ls 등) 및 chmod 실습 로그 복사 붙여넣기
-[여기에 로그 복사]
+$ mkdir -p practice_dir
+$ cd practice_dir
+$ echo "my secret data" > secret.txt
+$ ls -l secret.txt
+-rw-r--r-- 1 dbral 197609 15 Jul 28 18:11 secret.txt
+$ chmod 600 secret.txt
+$ ls -l secret.txt
+-rw------- 1 dbral 197609 15 Jul 28 18:11 secret.txt
+$ cd ..
 ```
 
 ### 1. 사전 준비 및 Docker 점검
@@ -154,11 +161,32 @@ Server:
  Live Restore Enabled: false
  Firewall Backend: iptables
 
-# hello-world 실행 로그 복사
-[여기에 로그 복사]
+$ docker run hello-world
 
-# ubuntu 컨테이너 진입 후 ls 또는 echo 실행 로그 복사
-[여기에 로그 복사]
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+    (amd64)
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client, which sent it
+    to your terminal.
+
+$ docker run -it --rm ubuntu bash -c "ls -la && echo 'Ubuntu Container Success'"
+total 56
+drwxr-xr-x   1 root root 4096 Jul 28 09:11 .
+drwxr-xr-x   1 root root 4096 Jul 28 09:11 ..
+-rwxr-xr-x   1 root root    0 Jul 28 09:11 .dockerenv
+lrwxrwxrwx   1 root root    7 Jun 20 18:41 bin -> usr/bin
+drwxr-xr-x   2 root root 4096 Apr 18 13:01 boot
+drwxr-xr-x   5 root root  360 Jul 28 09:11 dev
+drwxr-xr-x   1 root root 4096 Jul 28 09:11 etc
+drwxr-xr-x   2 root root 4096 Apr 18 13:01 home
+lrwxrwxrwx   1 root root    7 Jun 20 18:41 lib -> usr/lib
+Ubuntu Container Success
 ```
 
 ### 2. 커스텀 이미지 빌드
@@ -196,8 +224,28 @@ MSYS_NO_PATHCONV=1 docker run -d -p 9091:80 \
 ### 5. Docker 볼륨(Volume) 영속성 검증
 볼륨을 생성하고 컨테이너를 삭제해도 데이터가 유지되는지 검증:
 ```bash
-# docker volume create 및 실행/검증 로그 복사
-[여기에 로그 복사]
+$ docker volume create my_volume
+my_volume
+
+$ docker run -d --name vol-test1 -v my_volume:/data ubuntu sleep infinity
+1d948878133accefcf436c72a9c5a498b2f2d068127621e72eb0aac7082dbbaa
+
+$ docker exec vol-test1 bash -c "echo '볼륨 영속성 테스트 데이터입니다!' > /data/test.txt"
+
+$ docker exec vol-test1 cat /data/test.txt
+볼륨 영속성 테스트 데이터입니다!
+
+$ docker rm -f vol-test1
+vol-test1
+
+$ docker run -d --name vol-test2 -v my_volume:/data ubuntu sleep infinity
+df59fdcf5e05c2c0da66f9c664094efcf49332ecb8603dfc7c404a67468ee8e5
+
+$ docker exec vol-test2 cat /data/test.txt
+볼륨 영속성 테스트 데이터입니다!
+
+$ docker rm -f vol-test2
+vol-test2
 ```
 
 ### 6. Git 설정 및 연동 증거
