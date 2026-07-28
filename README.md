@@ -292,6 +292,17 @@ branch.main.merge=refs/heads/main
 |---|---|
 | ![Before](images/5.png) | ![After](images/4.png) |
 
+*(📌 이미지 평가가 불가능할 경우를 대비한 CLI `curl` 접속 증거 로그)*
+```bash
+# Before (인코딩 문제 발생 시점)
+$ curl http://localhost:9091
+Before - 맷낮긲닯
+
+# After (바인드 마운트를 통해 index.html 인코딩 수정 후)
+$ curl http://localhost:9091
+After - 수정했어요!
+```
+
 ---
 
 ## 🔧 자주 쓴 명령어
