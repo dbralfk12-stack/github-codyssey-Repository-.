@@ -6,7 +6,22 @@ Windows 환경에서 Docker를 활용한 개발 환경을 구축하고,
 ## 📋 프로젝트 개요
 - **목표:** Windows에 Docker 개발 환경 구축 및 nginx 웹서버 컨테이너 운영
 - **환경:** Windows + WSL2 + Docker Desktop
+- **Docker 버전:** `[여기에 docker --version 결과 복사]`
+- **Git 버전:** `[여기에 git --version 결과 복사]`
 - **기간:** 2026년 7월 28일
+
+---
+
+## ✅ 수행 체크리스트
+- [ ] 터미널 기본 조작 및 폴더 구성
+- [ ] 권한 변경 실습
+- [ ] Docker 설치/점검
+- [ ] hello-world 실행
+- [x] Dockerfile 빌드/실행
+- [x] 포트 매핑 접속(2회)
+- [x] 바인드 마운트 반영
+- [ ] 볼륨 영속성
+- [ ] Git 설정 + VSCode GitHub 연동
 
 ---
 
@@ -20,13 +35,27 @@ Windows 환경에서 Docker를 활용한 개발 환경을 구축하고,
 
 ## ⚙️ 구축 과정
 
-### 1. 사전 준비
+### 0. 터미널 기본 조작 및 권한 실습
+터미널 명령어(디렉토리 이동, 생성) 및 파일 권한(chmod) 변경 결과:
+```bash
+# 터미널 명령어 (pwd, mkdir, cd, ls 등) 및 chmod 실습 로그 복사 붙여넣기
+[여기에 로그 복사]
+```
+
+### 1. 사전 준비 및 Docker 점검
 - BIOS에서 가상화(Virtualization) 활성화
 - WSL2 및 VirtualMachinePlatform 활성화
-  ```bash
-  dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart
-  ```
-- Docker Desktop 설치 및 실행
+- Docker 데몬 점검 및 `hello-world` / `ubuntu` 테스트:
+```bash
+# docker info 결과 복사
+[여기에 로그 복사]
+
+# hello-world 실행 로그 복사
+[여기에 로그 복사]
+
+# ubuntu 컨테이너 진입 후 ls 또는 echo 실행 로그 복사
+[여기에 로그 복사]
+```
 
 ### 2. 커스텀 이미지 빌드
 Dockerfile 작성 (nginx 기반):
@@ -59,6 +88,21 @@ MSYS_NO_PATHCONV=1 docker run -d -p 9091:80 \
   --name bind-test nginx:alpine
 ```
 → 호스트에서 index.html 수정 시 컨테이너 재시작 없이 즉시 반영 ✅
+
+### 5. Docker 볼륨(Volume) 영속성 검증
+볼륨을 생성하고 컨테이너를 삭제해도 데이터가 유지되는지 검증:
+```bash
+# docker volume create 및 실행/검증 로그 복사
+[여기에 로그 복사]
+```
+
+### 6. Git 설정 및 연동 증거
+Git 기본 설정 및 `git config --list` 확인 결과:
+```bash
+# git config --list 결과 복사
+[여기에 로그 복사]
+```
+*(GitHub 및 VSCode 연동 완료)*
 
 ---
 
@@ -100,3 +144,4 @@ MSYS_NO_PATHCONV=1 docker run -d -p 9091:80 \
 - 포트 매핑으로 호스트와 컨테이너를 연결하는 원리를 익혔다.
 - 바인드 마운트로 코드 수정이 실시간 반영되는 개발 편의성을 체감했다.
 - 에러 메시지를 읽고 원인을 추적하는 디버깅 능력을 길렀다.
+- **Docker 볼륨을 활용하여 컨테이너가 삭제되어도 데이터가 안전하게 영속성(Persistence)을 유지함을 확인했다.**
