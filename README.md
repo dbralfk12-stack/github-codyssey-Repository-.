@@ -68,9 +68,9 @@ MSYS_NO_PATHCONV=1 docker run -d -p 9091:80 \
 ![Git Version](images/1.png)
 
 **Nginx 컨테이너 실행 및 바인드 마운트 결과**
-| Before (원본) | After (수정/한글 깨짐) |
+| Before (원본/한글 깨짐) | After (인코딩 수정 완료) |
 |---|---|
-| ![Before](images/2.png) | ![After](images/3.png) |
+| ![Before](images/3.png) | ![After](images/4.png) |
 
 ---
 
