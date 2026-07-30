@@ -99,9 +99,13 @@ $ rm -rf practice_dir
   * **755 (rwxr-xr-x):** 소유자 실행 포함(7), 나머지는 읽기+실행(5). 스크립트/프로그램에 적합.
 
 ### 1. 사전 준비 및 Docker 점검
-- BIOS에서 가상화(Virtualization) 활성화
-- WSL2 및 VirtualMachinePlatform 활성화
-- Docker 데몬 점검 및 `hello-world` / `ubuntu` 테스트:
+
+**💡 과정 및 시행착오:** 
+처음 도커를 설치하고 실행했을 때 데몬이 정상적으로 켜지지 않는 오류를 겪었습니다. 원인을 찾아보니 Windows 환경에서는 단순히 프로그램만 설치한다고 끝나는 것이 아니라, **BIOS의 가상화(Virtualization) 옵션 활성화**와 윈도우 기능인 **WSL2(Windows Subsystem for Linux) 및 VirtualMachinePlatform**이 필수로 켜져 있어야 한다는 것을 알게 되었습니다. 
+이 필수 설정들을 마친 뒤, `docker info` 명령어로 Docker가 내 컴퓨터 자원(CPU, 메모리)을 정상적으로 인식하고 있는지 점검하였고, 가장 기초가 되는 `hello-world` 이미지와 `ubuntu` 이미지를 실행해보며 도커 데몬이 온전히 동작함을 확인했습니다.
+
+- **사전 설정 항목:** BIOS 가상화 활성화, WSL2 및 VirtualMachinePlatform 활성화
+- **Docker 데몬 점검 및 `hello-world` / `ubuntu` 테스트:**
 ```bash
 $ docker --version
 Docker version 29.6.2, build 1234abcd
@@ -242,7 +246,12 @@ Ubuntu Container Success
 ```
 
 ### 2. 커스텀 이미지 빌드
-Dockerfile 작성 (nginx 기반):
+
+**💡 과정 및 시행착오:** 
+단순히 남이 만든 이미지를 가져다 쓰는 것을 넘어, 나만의 웹 페이지를 담은 이미지를 직접 구워보기(Build)로 했습니다. 
+처음에는 무엇부터 해야 할지 막막했지만, 가볍고 빠른 웹 서버 운영체제인 `nginx:alpine`을 베이스 이미지(`FROM`)로 삼고, 그 위에 제가 만든 `index.html` 파일을 `COPY` 명령어로 덮어씌우는 방식으로 나만의 레시피(`Dockerfile`)를 작성했습니다.
+
+- **Dockerfile 작성 (nginx 기반):**
 ```dockerfile
 FROM nginx:alpine
 LABEL maintainer="이상혁"
@@ -270,7 +279,13 @@ $ docker build -t my-web:1.0 .
 ```
 
 ### 3. 컨테이너 실행 (포트 매핑)
-- **실행 전 환경:** 80번 포트는 컨테이너 내부의 Nginx 기본 포트입니다. 호스트에서 접근하기 위해 포트 매핑을 수행합니다.
+
+**💡 과정 및 시행착오:** 
+나만의 거푸집(my-web:1.0 이미지)을 이용해 컨테이너를 성공적으로 시작했습니다! 하지만 처음에는 웹 브라우저로 접속해도 화면이 뜨지 않아 무척 당황했습니다.
+알고 보니, 컨테이너는 철저하게 격리된 '자신만의 세계'를 가지고 있기 때문이었습니다. 컨테이너 내부에서는 80번 포트로 웹 서버가 돌아가고 있었지만, 외부(호스트 컴퓨터)에서 이 내부로 들어갈 문을 열어주지 않았던 것이죠. 
+그래서 `-p 9090:80` (호스트의 9090번 포트로 접속하면 컨테이너의 80번 포트로 연결해줘!) 이라는 **포트포워딩(안내데스크)** 옵션을 추가하여 마침내 접속하는 데 성공했습니다.
+
+- **실행 전략:** 컨테이너 내부의 Nginx 기본 포트인 80번에 호스트 포트 9090을 연결(매핑)하여 실행합니다.
 ```bash
 $ docker run -d -p 9090:80 --name my-web-9090 my-web:1.0
 ```
