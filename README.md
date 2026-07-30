@@ -249,9 +249,15 @@ Ubuntu Container Success
 
 **💡 과정 및 시행착오:** 
 단순히 남이 만든 이미지를 가져다 쓰는 것을 넘어, 나만의 웹 페이지를 담은 이미지를 직접 구워보기(Build)로 했습니다. 
-처음에는 무엇부터 해야 할지 막막했지만, 가볍고 빠른 웹 서버 운영체제인 `nginx:alpine`을 베이스 이미지(`FROM`)로 삼고, 그 위에 제가 만든 `index.html` 파일을 `COPY` 명령어로 덮어씌우는 방식으로 나만의 레시피(`Dockerfile`)를 작성했습니다.
+처음에는 무엇부터 해야 할지 막막했지만, 도커 이미지를 만드는 정석적인 순서를 하나씩 밟아가며 해결했습니다.
 
-- **Dockerfile 작성 (nginx 기반):**
+**[커스텀 이미지 빌드 순서 및 방법]**
+1. **작업 폴더 생성 및 이동:** 새로운 디렉토리를 만들고 그 안으로 이동합니다.
+2. **웹 페이지 소스코드 준비:** 사용자가 접속했을 때 보여줄 나만의 `index.html` 파일을 만듭니다.
+3. **Dockerfile 작성:** 이미지를 어떻게 만들지 적어두는 명세서(설계도)를 작성합니다. 저는 가볍고 빠른 웹 서버 운영체제인 `nginx:alpine`을 베이스 이미지(`FROM`)로 삼고, 제가 만든 `index.html` 파일을 컨테이너 내부의 웹 서빙 경로로 덮어씌우는(`COPY`) 명령어를 적었습니다.
+4. **이미지 빌드 명령어 실행:** `docker build -t [이미지이름:버전] .` 명령어를 입력해 도커가 `Dockerfile`을 읽고 이미지를 만들어내도록 지시합니다. (명령어 끝의 `.` 은 현재 폴더에 있는 Dockerfile을 찾으라는 핵심 기호입니다.)
+
+- **단계 3. Dockerfile 작성 내용 (nginx 기반):**
 ```dockerfile
 FROM nginx:alpine
 LABEL maintainer="이상혁"
@@ -259,7 +265,7 @@ ENV APP_NAME=my-web
 COPY index.html /usr/share/nginx/html/index.html
 ```
 
-이미지 빌드 (성공 로그 포함):
+- **단계 4. 이미지 빌드 실행 (성공 로그 포함):**
 ```bash
 $ docker build -t my-web:1.0 .
 [+] Building 1.2s (7/7) FINISHED
